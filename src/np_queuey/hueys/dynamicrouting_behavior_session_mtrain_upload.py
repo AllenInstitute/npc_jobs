@@ -65,7 +65,7 @@ def hpc_cmd(foraging_id_and_filename) -> str:
     input_json, output_json = input_output_jsons(foraging_id_and_filename)
     # TODO convert to srun + shell script
     return (
-        "source activate /allen/aibs/technology/conda/production/mtrain_upload_dev "
+        "source activate /allen/aibs/technology/conda/production/mtrain_upload "
         f"&& mtrain_lims --input_json {input_json} --output_json {output_json}"
     )
 
