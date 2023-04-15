@@ -55,10 +55,10 @@ def upload_session_on_hpc(foraging_id_and_filename: tuple[str, str]) -> None:
             'Launching mtrain_lims on hpc for %s', foraging_id_and_filename
         )
         ssh.run(hpc_cmd(foraging_id_and_filename))
-    verify_behavior_session_uploaded(foraging_id_and_filename)
+    verify_behavior_session_uploaded.schedule(foraging_id_and_filename, delay=60)
 
 
-@huey.task(retry_delay=20, retries=3)
+@huey.task(retry_delay=60, retries=3)
 def verify_behavior_session_uploaded(
     foraging_id_and_filename: tuple[str, str]
 ) -> None:
