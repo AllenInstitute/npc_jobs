@@ -1,6 +1,6 @@
 [project]
 name = "np_queuey"
-version = "0.1.1"
+version = "0.1.2"
 description = "Tools for submitting and processing jobs through a message queue for Mindscope Neuropixels workflows."
 authors = [
     {name = "Ben Hardcastle", email = "ben.hardcastle@alleninstitute.org"},
@@ -56,7 +56,7 @@ ruff = "ruff --fix src"
 blue = "blue src"
 pytest = "pytest --cov"
 prebuild = {composite = ["blue", "ruff", "pytest"]}
-bump = "pdm bump patch" # defaults to patch; `pdm run bump -m` to bump minor
+bump = "bump -p pyproject.toml"
 build = {composite = ["prebuild", "pdm build"]}
 dry-run = {composite = ["prebuild", "pdm build", "pdm publish --no-build --repository https://test.pypi.org/simple"]}
 publish = {composite = ["prebuild", "pdm build", "pdm publish --no-build"]}
