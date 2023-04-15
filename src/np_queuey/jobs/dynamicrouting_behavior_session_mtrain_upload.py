@@ -20,17 +20,28 @@ SESSION_UPLOAD_TABLE = 'behavior_session_mtrain_upload_queue'
 COLUMNS_TO_DEFINITIONS = {
     'foraging_id': 'TEXT PRIMARY KEY NOT NULL',
     'filename': 'TEXT NOT NULL',
-    'added': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL',  #YYYY-MM-DD HH:MM:SS
+    'added': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL',  # YYYY-MM-DD HH:MM:SS
     'processing': 'INTEGER',  # [None] 0 or 1
     'uploaded': 'INTEGER',  # [None] 0 or 1
 }
+
 
 def table_sql(column_name_to_definition_mapping):
     """
     >>> table_sql({'col1': 'TEXT PRIMARY KEY NOT NULL', 'col2': 'INTEGER'})
     '(col1 TEXT PRIMARY KEY NOT NULL, col2 INTEGER)'
     """
-    return '(' + ', '.join(['{} {}'.format(col, defn) for col, defn in column_name_to_definition_mapping.items()]) + ')'
+    return (
+        '('
+        + ', '.join(
+            [
+                '{} {}'.format(col, defn)
+                for col, defn in column_name_to_definition_mapping.items()
+            ]
+        )
+        + ')'
+    )
+
 
 def initialize_mtrain_upload_queue_in_db():
     """
@@ -38,8 +49,10 @@ def initialize_mtrain_upload_queue_in_db():
     """
     with task_db_cursor() as c:
         c.execute(
-            'CREATE TABLE IF NOT EXISTS behavior_session_mtrain_upload_queue ' + table_sql(COLUMNS_TO_DEFINITIONS)
+            'CREATE TABLE IF NOT EXISTS behavior_session_mtrain_upload_queue '
+            + table_sql(COLUMNS_TO_DEFINITIONS)
         )
+
 
 def parse_filename(filename):
     """
@@ -48,6 +61,7 @@ def parse_filename(filename):
     'DynamicRouting1_664566_20230328_151155'
     """
     return filename.split('.')[0].split('_')
+
 
 def add_behavior_session_to_mtrain_upload_queue(foraging_id, filename):
     """
@@ -61,7 +75,10 @@ def add_behavior_session_to_mtrain_upload_queue(foraging_id, filename):
     with task_db_cursor() as c:
         c.execute(
             'INSERT OR IGNORE INTO behavior_session_mtrain_upload_queue (foraging_id, filename) VALUES (?, ?)',
-            (foraging_id, filename,),
+            (
+                foraging_id,
+                filename,
+            ),
         )
 
 
@@ -93,7 +110,6 @@ def task_db_cursor():
         conn.commit()
     finally:
         cursor.close()
-
 
 
 def remove_behavior_session_from_mtrain_upload_queue(foraging_id):
@@ -167,4 +183,5 @@ def mark_behavior_session_as_uploaded(foraging_id):
 
 if __name__ == '__main__':
     import doctest
+
     doctest.testmod(verbose=False, raise_on_error=False)
