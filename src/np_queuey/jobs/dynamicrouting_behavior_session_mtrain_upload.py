@@ -30,7 +30,7 @@ def table_sql(column_name_to_definition_mapping):
     >>> table_sql({'col1': 'TEXT PRIMARY KEY NOT NULL', 'col2': 'INTEGER'})
     '(col1 TEXT PRIMARY KEY NOT NULL, col2 INTEGER)'
     """
-    return '(' + ', '.join([f'{col} {defn}' for col, defn in column_name_to_definition_mapping.items()]) + ')'
+    return '(' + ', '.join(['{} {}'.format(col, defn) for col, defn in column_name_to_definition_mapping.items()]) + ')'
 
 def initialize_mtrain_upload_queue_in_db():
     """
@@ -138,7 +138,7 @@ def mark_behavior_session_as_processing(foraging_id):
     >>> mark_behavior_session_as_processing('test')
     >>> with task_db_cursor() as c:
     ...   result = c.execute('SELECT processing FROM behavior_session_mtrain_upload_queue WHERE foraging_id = "test"').fetchall()[0][0]
-    ...   assert result == 1, f'Test result (processing, ) returned {result}: expected 1 (True)'
+    ...   assert result == 1, 'Test result (processing, ) returned {}: expected 1 (True)'.format(result)
     """
     with task_db_cursor() as c:
         c.execute(
@@ -156,7 +156,7 @@ def mark_behavior_session_as_uploaded(foraging_id):
     >>> mark_behavior_session_as_uploaded('test')
     >>> with task_db_cursor() as c:
     ...   result = c.execute('SELECT processing, uploaded FROM behavior_session_mtrain_upload_queue WHERE foraging_id = "test"').fetchall()[0]
-    ...   assert result == (0, 1), f'Test result (processing, uploaded) returned {result}: expected (0, 1) (False, True)'
+    ...   assert result == (0, 1), 'Test result (processing, uploaded) returned {}: expected (0, 1) (False, True)'.format(result)
     """
     with task_db_cursor() as c:
         c.execute(
@@ -167,4 +167,4 @@ def mark_behavior_session_as_uploaded(foraging_id):
 
 if __name__ == '__main__':
     import doctest
-    doctest.testmod(verbose=True, raise_on_error=False)
+    doctest.testmod(verbose=False, raise_on_error=False)

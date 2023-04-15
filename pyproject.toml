@@ -28,6 +28,9 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
 ]
 
+[project.scripts]
+run_small_jobs = "np_queuey.jobs.run_small_jobs:main"
+
 [project.urls]
 Repository = "https://github.com/AllenInstitute/np_queuey"
 "Bug Tracker" = "https://github.com/AllenInstitute/np_queuey/issues"
