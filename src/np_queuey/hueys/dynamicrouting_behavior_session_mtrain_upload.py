@@ -12,10 +12,11 @@ import np_tools
 
 import np_queuey
 from np_queuey.jobs import dynamicrouting_behavior_session_mtrain_upload as job
+import np_queuey.utils as utils
 
 logger = np_logging.getLogger()
 
-huey = np_queuey.HueyQueue(job.DB_PATH).huey
+huey = np_queuey.HueyQueue(utils.DEFAULT_HUEY_SQLITE_DB_PATH).huey
 
 UPLOAD_JSON_DIR_CONFIG_KEY = (
     'dynamicrouting_behavior_session_mtrain_upload_json_dir'
@@ -23,7 +24,7 @@ UPLOAD_JSON_DIR_CONFIG_KEY = (
 """Single leading fwd slash, for unix compatibility on hpc"""
 
 
-@huey.periodic_task(_huey.crontab(minute='*/30', strict=True))
+@huey.periodic_task(_huey.crontab(minute='*/10', strict=True))
 def upload_outstanding_sessions() -> None:
     sessions: list[
         tuple[str, str]
