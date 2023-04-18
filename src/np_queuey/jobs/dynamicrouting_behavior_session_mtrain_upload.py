@@ -114,6 +114,7 @@ def task_db_cursor():
 
 def remove_behavior_session_from_mtrain_upload_queue(foraging_id):
     """
+    >>> add_behavior_session_to_mtrain_upload_queue('test', 'test.hdf5')
     >>> remove_behavior_session_from_mtrain_upload_queue('test')
     >>> with task_db_cursor() as c:
     ...   sessions = c.execute('SELECT * FROM behavior_session_mtrain_upload_queue').fetchall()

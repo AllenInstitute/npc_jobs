@@ -85,6 +85,10 @@ def verify_behavior_session_uploaded(
 def is_behavior_session_in_mtrain(
     foraging_id_and_filename: tuple[str, str]
 ) -> bool:
+    """
+    >>> is_behavior_session_in_mtrain(('e4d6666e-3c0d-4726-9dd8-afccd124e872', 'DynamicRouting1_660023_20230417_162846.hdf5'))
+    True
+    """
     _, filename = foraging_id_and_filename
     _, mouse_id, date, time = job.parse_filename(filename)
     mtrain = np_session.Mouse(mouse_id).mtrain
