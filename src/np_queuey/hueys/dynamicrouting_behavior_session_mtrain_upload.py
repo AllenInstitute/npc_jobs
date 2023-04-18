@@ -56,7 +56,7 @@ def upload_session_on_hpc(foraging_id_and_filename: tuple[str, str]) -> None:
         )
         ssh.run(hpc_cmd(foraging_id_and_filename))
     verify_behavior_session_uploaded.schedule(
-        foraging_id_and_filename, delay=60
+        (foraging_id_and_filename,), delay=60
     )
 
 
