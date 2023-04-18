@@ -35,9 +35,11 @@ class HueyQueue(JobQueue):
     db_path: str
     """Path to the sqlite database for `huey`"""
 
-    def __init__(self, sqlite_db_path: Optional[str] = None) -> None:
+    def __init__(self, sqlite_db_path: Optional[str] = None, **kwargs) -> None:
         self.db_path = sqlite_db_path or utils.DEFAULT_HUEY_SQLITE_DB_PATH
-        self.huey = huey.SqliteHuey(filename=self.db_path)
+        kwargs.setdefault('journal_mode', 'truncate')
+        kwargs.setdefault('fsync', True)
+        self.huey = huey.SqliteHuey(filename=self.db_path, **kwargs)
         for task in (
             _ for _ in dir(tasks) if isinstance(getattr(tasks, _), Callable)
         ):
