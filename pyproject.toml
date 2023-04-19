@@ -9,7 +9,7 @@ dependencies = [
     "huey>=2.4.5",
     "np-config>=0.4.17",
     "np-logging>=0.5.1",
-    "np-tools>=0.1.0",
+    "np-tools>=0.1.2",
     "np-session>=0.5.1",
 ]
 requires-python = ">=3.8"
