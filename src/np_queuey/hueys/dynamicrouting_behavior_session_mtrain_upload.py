@@ -182,6 +182,9 @@ def get_input_json_contents(
             )
             np_logging.web('np_queuey').error(msg)
             raise FileNotFoundError(msg)
+        np_logging.web('np_queuey').info(
+            'File found for upload to mtrain: %r', file
+        )
         return {
             'inc': {
                 'API_BASE': 'http://mtrain:5000',
