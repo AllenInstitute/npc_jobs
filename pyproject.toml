@@ -1,12 +1,14 @@
 [project]
 name = "np_queuey"
-version = "0.1.7"
+version = "0.1.8"
 description = "Tools for submitting and processing jobs through a message queue for Mindscope Neuropixels workflows."
 authors = [
     {name = "Ben Hardcastle", email = "ben.hardcastle@alleninstitute.org"},
 ]
 dependencies = [
     "huey>=2.4.5",
+    "peewee>=3.16.1",
+    "sqlite-web>=0.4.1",
     "np-config>=0.4.17",
     "np-logging>=0.5.1",
     "np-tools>=0.1.2",
