@@ -89,7 +89,7 @@ def dynamic_routing_task_db():
     """
     conn = sqlite3.connect(DB_PATH, timeout=1)
     conn.isolation_level = None  # autocommit mode
-    conn.execute('pragma journal_mode="truncate"')
+    conn.execute('pragma journal_mode="delete"')
     conn.execute('pragma synchronous=2')
     return conn
 
