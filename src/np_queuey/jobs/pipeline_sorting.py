@@ -22,8 +22,8 @@ Pipeline sorting queue.
 
     >>> Sorting.db.create_tables([Sorting])
     >>> s = '123456789_366122_20230422'
-    >>> _ = Sorting.delete().where(Sorting.foldername == s).execute()
-    >>> test = Sorting.create(foldername=s, priority=99)
+    >>> _ = Sorting.delete().where(Sorting.folder == s).execute()
+    >>> test = Sorting.add(session=s, priority=99)
     >>> Sorting.next() == test
     True
     >>> test.session
@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import abc
 import datetime
+import pathlib
 import typing
 from typing import Protocol
 
@@ -46,7 +47,7 @@ import peewee
 
 import np_queuey.utils as utils
 
-DB_PATH = utils.DEFAULT_HUEY_SQLITE_DB_PATH
+DB_PATH = pathlib.Path(utils.DEFAULT_HUEY_SQLITE_DB_PATH).parent / 'sorting.db'
 
 @typing.runtime_checkable
 class Job(Protocol):
@@ -94,7 +95,7 @@ class JobQueue(Protocol):
     """Base class for job queues."""
     
     @abc.abstractmethod
-    def add(self, session_or_job: str | np_session.Session | Job) -> None:
+    def add(self, session_or_job: str | np_session.Session | Job, **kwargs) -> Job:
         """Add an entry to the queue with sensible default values."""
         
     @abc.abstractmethod
@@ -140,7 +141,7 @@ class PeeweeJobQueue(peewee.Model):
         database = peewee.SqliteDatabase(
                 database=DB_PATH,
                 pragmas=dict(
-                    journal_mode='truncate', # 'wal' not supported on NAS
+                    journal_mode='delete', # 'wal' not supported on NAS
                     synchronous=2,
                 ),
             )
@@ -148,18 +149,20 @@ class PeeweeJobQueue(peewee.Model):
     db = Meta.database
 
     @classmethod
-    def add(cls, job: str | np_session.Session | Job) -> None:
-        """Add an entry to the queue. Default values already set in db."""
-        if isinstance(job, str):
-            job = np_session.Session(job)
-        if isinstance(job, np_session.Session):
-            cls.create(
-                foldername=job.folder
-                )
-        if isinstance(job, Job):
-            cls.create(
-                foldername=job.session.folder, priority=job.priority,
-                )
+    def add(cls, session: str | np_session.Session | Job, **kwargs) -> Job:
+        """
+        Add an entry to the queue with `folder` from `job`, kwargs as
+        fields. Default field values already set in db.
+        """
+        session = np_session.Session(session) if isinstance(session, str) else session
+        folder = session.folder if isinstance(session, np_session.Session) else session.session.folder
+        if isinstance(session, Job):
+            kwargs.setdefault('priority', session.priority)
+        return cls.create(
+            folder=folder,
+            **kwargs,
+            )
+
 
     @classmethod
     def next(cls) -> Job:
@@ -179,9 +182,20 @@ class PeeweeJobQueue(peewee.Model):
             ).order_by(cls.priority.desc(), cls.added.asc())
         )
 
+
+    def set_finished(self) -> None:
+        """Mark this session as finished. Not reversible, so be sure."""
+        self.finished = True
+        self.save()
+        
     def set_started(self, hostname: str = np_config.HOSTNAME) -> None:
         """Mark this session as being processed on `hostname`, defaults to <localhost>."""
         self.hostname = hostname
+        self.save()
+        
+    def set_queued(self) -> None:
+        """Mark this session as requiring processing, undoing `set_started`."""
+        self.hostname = ''
         self.save()
 
     @property
@@ -192,7 +206,7 @@ class PeeweeJobQueue(peewee.Model):
    
 class Sorting(PeeweeJobQueue):
 
-    foldername = peewee.CharField(primary_key=True)
+    folder = peewee.CharField(primary_key=True)
     """Session folder name for sorting, e.g. `123456789_366122_20230422`"""
 
     probes = peewee.CharField(null=False, default='ABCDEF')
@@ -200,9 +214,10 @@ class Sorting(PeeweeJobQueue):
 
     @property
     def session(self) -> np_session.Session:
-        return np_session.Session(self.foldername)
+        return np_session.Session(self.folder)
 
-
+            
+        
 def add_verbose_names_to_peewee_fields(*peewee_cls) -> None:
     """Add the docstring of each `peewee_cls` field to its `verbose_name` attribute."""
     for cls in peewee_cls:
