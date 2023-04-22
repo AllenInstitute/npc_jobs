@@ -1,37 +1,37 @@
 """
 Pipeline sorting queue.
 
-    >>> PeeweeJobQueue.db.create_tables([PeeweeJobQueue])
-    >>> test1 = PeeweeJobQueue.create()
-    >>> test2 = PeeweeJobQueue.create()
-    >>> PeeweeJobQueue.next() == test1
-    True
-    >>> test1.is_started
-    False
-    >>> test1.is_started
-    False
-    >>> test1.finished = True
-    >>> _ = test1.save()
-    >>> test1.is_started
-    False
-    >>> test2 == PeeweeJobQueue.next()
-    True
-    >>> PeeweeJobQueue.db.drop_tables([PeeweeJobQueue])
-    >>> _ = PeeweeJobQueue.db.close()
+>>> PeeweeJobQueue.db.create_tables([PeeweeJobQueue])
+>>> test1 = PeeweeJobQueue.create(folder='t1')
+>>> test2 = PeeweeJobQueue.create(folder='t2')
+>>> PeeweeJobQueue.next() == test1
+True
+>>> test1.is_started
+False
+>>> test1.is_started
+False
+>>> test1.finished = True
+>>> _ = test1.save()
+>>> test1.is_started
+False
+>>> test2 == PeeweeJobQueue.next()
+True
+>>> PeeweeJobQueue.db.drop_tables([PeeweeJobQueue])
+>>> _ = PeeweeJobQueue.db.close()
 
 
-    >>> Sorting.db.create_tables([Sorting])
-    >>> s = '123456789_366122_20230422'
-    >>> _ = Sorting.delete().where(Sorting.folder == s).execute()
-    >>> test = Sorting.add(session=s, priority=99)
-    >>> Sorting.next() == test
-    True
-    >>> test.session
-    Session('123456789_366122_20230422')
-    >>> test.probes
-    'ABCDEF'
-    >>> _ = test.delete_instance()
-    >>> _ = Sorting.db.close()
+>>> Sorting.db.create_tables([Sorting])
+>>> s = '123456789_366122_20230422'
+>>> _ = Sorting.delete().where(Sorting.folder == s).execute()
+>>> test = Sorting.add(s, priority=99)
+>>> Sorting.next() == test
+True
+>>> test.session
+Session('123456789_366122_20230422')
+>>> test.probes
+'ABCDEF'
+>>> _ = test.delete_instance()
+>>> _ = Sorting.db.close()
 """
 from __future__ import annotations
 
