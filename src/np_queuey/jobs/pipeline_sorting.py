@@ -95,7 +95,7 @@ class JobQueue(Protocol):
     """Base class for job queues."""
     
     @abc.abstractmethod
-    def add(self, session_or_job: str | np_session.Session | Job, **kwargs) -> Job:
+    def add(self, session_or_job: str | int | np_session.Session | Job, **kwargs) -> Job:
         """Add an entry to the queue with sensible default values."""
         
     @abc.abstractmethod
@@ -125,8 +125,11 @@ class PeeweeJobQueue(peewee.Model):
     - classmethods implement the `JobQueue` protocol
     """
     
+    folder = peewee.CharField(primary_key=True)
+    """Session folder name, e.g. `123456789_366122_20230422`"""
+    
     priority = peewee.IntegerField(default=0)
-    """Priority level for sorting this session. Higher priority sessions will be sorted first."""
+    """Priority level for processing this session. Higher priority sessions will be processed first."""
 
     added = peewee.DateTimeField(default=datetime.datetime.now)
     """When the session was added to the queue."""
@@ -136,6 +139,12 @@ class PeeweeJobQueue(peewee.Model):
 
     finished = peewee.BooleanField(default=False)
     """Whether the session has been verified as finished."""
+
+
+    @property
+    def session(self) -> np_session.Session:
+        """Neuropixels Session the job belongs to."""
+        return np_session.Session(self.folder)
 
     class Meta:
         database = peewee.SqliteDatabase(
@@ -149,15 +158,15 @@ class PeeweeJobQueue(peewee.Model):
     db = Meta.database
 
     @classmethod
-    def add(cls, session: str | np_session.Session | Job, **kwargs) -> Job:
+    def add(cls, session_or_job: str | int | np_session.Session | Job, **kwargs) -> Job:
         """
         Add an entry to the queue with `folder` from `job`, kwargs as
         fields. Default field values already set in db.
         """
-        session = np_session.Session(session) if isinstance(session, str) else session
-        folder = session.folder if isinstance(session, np_session.Session) else session.session.folder
-        if isinstance(session, Job):
-            kwargs.setdefault('priority', session.priority)
+        session_or_job = np_session.Session(session_or_job) if isinstance(session_or_job, (str, int)) else session_or_job
+        folder = session_or_job.folder if isinstance(session_or_job, np_session.Session) else session_or_job.session.folder
+        if isinstance(session_or_job, Job):
+            kwargs.setdefault('priority', session_or_job.priority)
         return cls.create(
             folder=folder,
             **kwargs,
@@ -172,9 +181,9 @@ class PeeweeJobQueue(peewee.Model):
             
     @classmethod
     def select_unprocessed(cls) -> peewee.ModelSelect:
-        """Get the sessions that have not been processed yet.
+        """Get the jobs that have not been processed yet.
 
-        Sorted in descending order of priority level, then by ascending date added.
+        Sorted by priority level (desc), then date added (asc).
         """
         return (
             cls.select().where(
@@ -191,11 +200,13 @@ class PeeweeJobQueue(peewee.Model):
     def set_started(self, hostname: str = np_config.HOSTNAME) -> None:
         """Mark this session as being processed on `hostname`, defaults to <localhost>."""
         self.hostname = hostname
+        self.finished = False
         self.save()
         
     def set_queued(self) -> None:
         """Mark this session as requiring processing, undoing `set_started`."""
         self.hostname = ''
+        self.finished = False
         self.save()
 
     @property
@@ -206,15 +217,8 @@ class PeeweeJobQueue(peewee.Model):
    
 class Sorting(PeeweeJobQueue):
 
-    folder = peewee.CharField(primary_key=True)
-    """Session folder name for sorting, e.g. `123456789_366122_20230422`"""
-
     probes = peewee.CharField(null=False, default='ABCDEF')
     """Probe letters for sorting, e.g. `ABCDEF`"""
-
-    @property
-    def session(self) -> np_session.Session:
-        return np_session.Session(self.folder)
 
             
         
