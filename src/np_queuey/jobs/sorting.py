@@ -225,9 +225,10 @@ class PeeweeJobQueue(peewee.Model):
         """
         job_kwargs = cls.parse_job(get_job(session_or_job))
         job_kwargs.update(kwargs)
-        return cls.create(
-            **job_kwargs,
-            )
+        with cls.db.connection_context():
+            return cls.create(
+                **job_kwargs,
+                )
 
 
     @classmethod
@@ -263,31 +264,35 @@ class PeeweeJobQueue(peewee.Model):
             
     def set_finished(self, session_or_job: Optional[SessionArgs | Job] = None) -> None:
         """Mark this session as finished. May be irreversible, so be sure."""
-        instance = self.self_or_job(session_or_job)
-        instance.finished = True
-        instance.save()
+        with self.db.connection_context():
+            instance = self.self_or_job(session_or_job)
+            instance.finished = True
+            instance.save()
         
     def set_started(self, hostname: str = np_config.HOSTNAME, session_or_job: Optional[SessionArgs | Job] = None) -> None:
         """Mark this session as being processed, on `hostname` if provided, defaults to <localhost>."""
-        instance = self.self_or_job(session_or_job)
-        instance.hostname = hostname
-        instance.finished = False
-        instance.save()
+        with self.db.connection_context():
+            instance = self.self_or_job(session_or_job)
+            instance.hostname = hostname
+            instance.finished = False
+            instance.save()
         
     def set_queued(self, session_or_job: Optional[SessionArgs | Job] = None) -> None:
         """Mark this session as requiring processing, undoing `set_started`."""
-        instance = self.self_or_job(session_or_job)
-        instance.hostname = None
-        instance.finished = False
-        instance.save()
+        with self.db.connection_context():
+            instance = self.self_or_job(session_or_job)
+            instance.hostname = None
+            instance.finished = False
+            instance.save()
 
     def set_errored(self, exception: Optional[Exception] = None, session_or_job: Optional[SessionArgs | Job] = None) -> None:
         """Mark this session as errored, leaving `hostname` field intact.
         Inserts `exception` into `errored` field, if provided."""
-        instance = self.self_or_job(session_or_job)
-        instance.errored = f'{exception!r}'.replace('\\','/') if exception else f'{Exception("unknown error on " + instance.hostname)!r}'
-        instance.finished = False
-        instance.save()
+        with self.db.connection_context():
+            instance = self.self_or_job(session_or_job)
+            instance.errored = f'{exception!r}'.replace('\\','/') if exception else f'{Exception("unknown error on " + instance.hostname)!r}'
+            instance.finished = False
+            instance.save()
         
     @property
     def is_started(self) -> bool:
@@ -306,8 +311,9 @@ class Sorting(PeeweeJobQueue):
 
     def update_probes(self, probes: str) -> None:
         """Update the probes to sort."""
-        self.probes = probes
-        self.save()
+        with self.db.connection_context():
+            self.probes = probes
+            self.save()
             
         
 def add_verbose_names_to_peewee_fields(*peewee_cls) -> None:

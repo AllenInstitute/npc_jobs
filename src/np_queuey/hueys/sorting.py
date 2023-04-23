@@ -35,7 +35,7 @@ def sort_outstanding_sessions() -> None:
         if job.is_started:
             logger.info('Sorting already started for %s', job.session)
             return
-        run_sorting(job)
+    run_sorting(job)
 
 
 @contextlib.contextmanager
@@ -58,7 +58,6 @@ def set_flags(job: Sorting) -> Generator[None, None, None]:
 
 def run_sorting(job: Sorting) -> None:
     with set_flags(job):
-        raise KeyboardInterrupt
         remove_existing_sorted_folders_on_npexp(job)
         start_sorting(job)
         move_sorted_folders_to_npexp(job)
