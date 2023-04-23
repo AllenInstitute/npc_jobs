@@ -1,6 +1,6 @@
 [project]
 name = "np_queuey"
-version = "0.1.8"
+version = "0.1.18"
 description = "Tools for submitting and processing jobs through a message queue for Mindscope Neuropixels workflows."
 authors = [
     {name = "Ben Hardcastle", email = "ben.hardcastle@alleninstitute.org"},
@@ -30,6 +30,8 @@ classifiers = [
 
 [project.scripts]
 run_small_jobs = "np_queuey.jobs.run_small_jobs:main"
+# run_sorting = "np_queuey.jobs.run_sorting:main"
+run_sorting = "np_queuey.hueys.sorting:main"
 
 [project.urls]
 Repository = "https://github.com/AllenInstitute/np_queuey"
