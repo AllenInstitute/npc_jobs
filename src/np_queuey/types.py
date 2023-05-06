@@ -82,6 +82,11 @@ class Job(Protocol):
     def finished(self) -> None | int | float:
         """Whether the session has been verified as finished."""
     
+    @property
+    @abc.abstractmethod
+    def error(self) -> None | str:
+        """Error message, if the job errored."""
+    
     
 @typing.runtime_checkable
 class JobQueue(Protocol):
@@ -136,6 +141,10 @@ class JobQueue(Protocol):
     def set_queued(self, session_or_job: SessionArgs | Job) -> None:
         """Mark a job as requiring processing, undoing `set_started`."""
     
+    @abc.abstractmethod
+    def set_errored(self, session_or_job: SessionArgs | Job, error: str | Exception) -> None:
+        """Mark a job as having errored."""
+
     @abc.abstractmethod
     def is_started(self, session_or_job: SessionArgs | Job) -> bool:
         """Whether the job has started processing, but not yet finished."""

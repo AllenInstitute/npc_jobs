@@ -1,18 +1,21 @@
 """Utilities for np_queuey, should be importable from anywhere in the project
 (except `types` module)."""
 from __future__ import annotations
+import contextlib
 
 import dataclasses
 import datetime
 import pathlib
 import time
-from typing import Any, NamedTuple, Optional
+from typing import Any, Generator, NamedTuple, Optional, Type
 
 import np_config
+import np_logging
 import np_session
 
-from np_queuey.types import Job, SessionArgs
+from np_queuey.types import Job, SessionArgs, JobQueue, JobT, JobQueueT
 
+logger = np_logging.getLogger(__name__)
 
 CONFIG: dict[str, Any] = np_config.fetch('/projects/np_queuey/config')
 
@@ -23,6 +26,35 @@ DEFAULT_HUEY_DIR: pathlib.Path = pathlib.Path(
 ).parent
 """Directory for shared resources (tasks, sqlite dbs, huey instances...)"""
 
+
+class JobTuple(NamedTuple):
+    """Tuple with session and added required inputs.
+    
+    >>> job = JobTuple('123456789_366122_20230422', datetime.datetime.now())
+    >>> assert isinstance(job, Job)
+    """
+    session: str
+    added: float
+    priority = 0
+    started: Optional[int | float] = None
+    hostname: Optional[str] = None
+    finished: Optional[int] = None
+    error: Optional[str] = None
+
+@dataclasses.dataclass
+class JobDataclass:
+    """Dataclass with only session required.
+    
+    >>> job = JobDataclass('123456789_366122_20230422')
+    >>> assert isinstance(job, Job)
+    """
+    session: str
+    added: float = dataclasses.field(default_factory=time.time)
+    priority: int = 0
+    started: Optional[int | float] = None
+    hostname: Optional[str] = None
+    finished: Optional[int] = None
+    error: Optional[str] = None
 
 def get_session(session_or_job: SessionArgs | Job) -> np_session.Session:
     """Parse a session argument into a Neuropixels Session.
@@ -41,16 +73,16 @@ def get_session(session_or_job: SessionArgs | Job) -> np_session.Session:
             ) from exc
 
     
-def get_job(session_or_job: SessionArgs | Job) -> Job:
+def get_job(session_or_job: SessionArgs | Job, job_type: Type[JobT] = JobDataclass) -> JobT:
     """Get a job with default values and just the `session` attr filled in.
     
     >>> job = get_job('123456789_366122_20230422')
     >>> assert isinstance(job, Job)
     >>> assert job == get_job(job)
     """
-    if isinstance(session_or_job, Job):
+    if isinstance(session_or_job, job_type):
         return session_or_job
-    return JobDataclass(
+    return job_type(
         session=get_session(session_or_job).folder,
         )
     
