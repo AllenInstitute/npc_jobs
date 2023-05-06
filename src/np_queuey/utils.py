@@ -53,34 +53,26 @@ def get_job(session_or_job: SessionArgs | Job) -> Job:
     return JobDataclass(
         session=get_session(session_or_job).folder,
         )
-
-
-class JobTuple(NamedTuple):
-    """Tuple with session and added required inputs.
     
-    >>> job = JobTuple('123456789_366122_20230422', datetime.datetime.now())
-    >>> assert isinstance(job, Job)
-    """
-    session: str
-    added: float
-    priority = 0
-    started: Optional[int | float] = None
-    hostname: Optional[str] = None
-    finished: Optional[int] = None
-
-@dataclasses.dataclass
-class JobDataclass:
-    """Dataclass with only session required.
     
-    >>> job = JobDataclass('123456789_366122_20230422')
-    >>> assert isinstance(job, Job)
-    """
-    session: str
-    added: float = dataclasses.field(default_factory=time.time)
-    priority: int = 0
-    started: Optional[int | float] = None
-    hostname: Optional[str] = None
-    finished: Optional[int] = None
+@contextlib.contextmanager
+def update_status(queue: JobQueueT, job: JobT) -> Generator[Any, None, None]:
+    try:
+        
+        queue.set_started(job)
+        logger.debug('Marked job as started: %s %s', queue, job.session)
+        yield
+    except BaseException as exc:
+        if isinstance(exc, Exception):
+            queue.set_errored(job, exc)
+            logger.exception('Exception during processing %s %s', queue, job.session)
+            return
+        else: # KeyboardInterrupt, SystemExit etc:
+            queue.set_queued(job)
+            raise
+    else:
+        queue.set_finished(job)
+        logger.debug('Marked job finished: %s %s', queue, job.session)
 
 if __name__ == '__main__':
     import doctest
