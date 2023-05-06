@@ -18,7 +18,7 @@ from typing_extensions import Literal
 
 import np_queuey
 import np_queuey.utils as utils
-from np_queuey.jobs.sorting import Sorting
+from np_queuey.jobs.sorting import Sorting, SessionArgs
 
 logger = np_logging.getLogger()
 
@@ -28,7 +28,7 @@ huey = _huey.SqliteHuey('sorting.db', immediate=True)
 @huey.task()
 def sort_outstanding_sessions() -> None:
     with Sorting.db:
-        job: Sorting | None = Sorting.next()
+        job: Sorting | None = Sorting().next()
         if job is None:
             logger.info('No outstanding sessions to sort')
             return
@@ -56,17 +56,20 @@ def set_flags(job: Sorting) -> Generator[None, None, None]:
         job.set_finished()
         np_logging.web('np_queuey').info('Sorting completed successfully for %s', job.session)
 
-def run_sorting(job: Sorting) -> None:
+def run_sorting(session_or_job: Sorting | SessionArgs) -> None:
+    job = Sorting.get_job(session_or_job)
     with set_flags(job):
         remove_existing_sorted_folders_on_npexp(job)
         start_sorting(job)
         move_sorted_folders_to_npexp(job)
         remove_raw_data_on_acq_drives(job)
 
-def probe_folders(job: Sorting) -> tuple[str]:
-    return tuple(f'{job.session.folder}_probe{probe_letter.upper()}_sorted' for probe_letter in job.probes)
+def probe_folders(session_or_job: Sorting | SessionArgs) -> tuple[str]:
+    job = Sorting.get_job(session_or_job)
+    return tuple(f'{job.session}_probe{probe_letter.upper()}_sorted' for probe_letter in job.probes)
 
-def remove_existing_sorted_folders_on_npexp(job: Sorting) -> None:
+def remove_existing_sorted_folders_on_npexp(session_or_job: Sorting | SessionArgs) -> None:
+    job = Sorting.get_job(session_or_job)
     for probe_folder in probe_folders(job):
         logger.info('Checking for existing sorted folder %s', probe_folder)
         path = job.session.npexp_path / probe_folder
@@ -74,27 +77,30 @@ def remove_existing_sorted_folders_on_npexp(job: Sorting) -> None:
             logger.info('Removing existing sorted folder %s', probe_folder)
             shutil.rmtree(path.as_posix(), ignore_errors=True)
 
-def start_sorting(job: Sorting) -> None:
+def start_sorting(session_or_job: Sorting | SessionArgs) -> None:
+    job = Sorting.get_job(session_or_job)
     path = pathlib.Path('c:/Users/svc_neuropix/Documents/GitHub/ecephys_spike_sorting/ecephys_spike_sorting/scripts/full_probe3X_from_extraction_nopipenv.bat')
     if not path.exists():
         raise FileNotFoundError(path)
-    args = [job.session.folder, ''.join(_ for _ in str(job.probes))]
+    args = [job.session, ''.join(_ for _ in str(job.probes))]
     subprocess.run([str(path), *args])
  
-def move_sorted_folders_to_npexp(job: Sorting) -> None:
+def move_sorted_folders_to_npexp(session_or_job: Sorting | SessionArgs) -> None:
     """Move the sorted folders to the npexp drive
     Assumes D: processing drive - might want to move this to rig for
     specific-config.
     Cannot robocopy with * for folders, so we must do each probe separately.
     """
+    job = Sorting.get_job(session_or_job)
     for probe_folder in probe_folders(job):
         logger.info('Moving D:/%s to npexp', probe_folder)
-        subprocess.run(['robocopy', f'D:/{probe_folder}', str(job.session.npexp_path / probe_folder), '/MOVE', '/E' '/R:0', '/W:0', '/MT:32'])       
+        subprocess.run(['robocopy', f'D:/{probe_folder}', str(job.session.npexp_path / probe_folder), '/MOVE', '/E', '/COPYALL', '/R:0', '/W:0', '/MT:32'])       
         
 
-def remove_raw_data_on_acq_drives(job: Sorting) -> None:
+def remove_raw_data_on_acq_drives(session_or_job: Sorting | SessionArgs) -> None:
+    job = Sorting.get_job(session_or_job)
     for drive in ('A:', 'B:'):
-        for path in pathlib.Path(drive).glob(f'{job.session.folder}*'):
+        for path in pathlib.Path(drive).glob(f'{job.session}*'):
             logger.info('Removing %r', path)
             shutil.rmtree(path, ignore_errors=True)
         

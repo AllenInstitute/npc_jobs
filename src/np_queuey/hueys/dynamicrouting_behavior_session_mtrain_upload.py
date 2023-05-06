@@ -144,9 +144,9 @@ def get_behavior_session_storage_dir(foraging_id_and_filename) -> pathlib.Path:
             f'Could not find behavior sessions for mouse {mouse_id} in LIMS'
         )
     behavior_sessions = tuple(
-        _
-        for _ in mouse.lims['behavior_sessions']
-        if _['foraging_id'].replace('-', '') == foraging_id.replace('-', '')
+        session
+        for session in mouse.lims['behavior_sessions']
+        if session['foraging_id'].replace('-', '') == foraging_id.replace('-', '')
     )
     if not behavior_sessions:
         raise ValueError(
