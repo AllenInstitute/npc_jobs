@@ -33,8 +33,8 @@ from typing import Any, Generator, Iterator, Optional, Type
 import np_config
 import np_session
 
-from np_queuey.types import Job, SessionArgs, JobArgs
-from np_queuey.utils import get_job, get_session, JobDataclass
+from np_queuey.types import Job, JobArgs, JobT, SessionArgs
+from np_queuey.utils import JobDataclass, get_job, get_session
 
 DEFAULT_DB_PATH = '//allen/programs/mindscope/workgroups/dynamicrouting/ben/np_queuey/.shared.db'
 
@@ -45,6 +45,7 @@ JOB_ARGS_TO_SQL_DEFINITIONS: dict[str, str] = {
     'started': 'INTEGER DEFAULT NULL',
     'hostname': 'TEXT DEFAULT NULL',
     'finished': 'INTEGER DEFAULT NULL',  # [None] 0 or 1
+    'error': 'TEXT DEFAULT NULL',
 }
 """Mapping of job attribute names (keys in db) to sqlite3 column definitions."""
 
@@ -154,7 +155,7 @@ class SqliteJobQueue(collections.abc.MutableMapping):
             job_args.append(value)    
         return tuple(job_args)
     
-    def to_job(self, *args: JobArgs, **kwargs: JobArgs) -> Job:
+    def to_job(self, *args: JobArgs, **kwargs: JobArgs) -> JobT:
         """Convert args or kwargs into a job.
         
         If args are provided, the assumption is they came from sqlite in the
@@ -166,7 +167,7 @@ class SqliteJobQueue(collections.abc.MutableMapping):
             kwargs = dict(zip(self.column_definitions.keys(), args))
         return self.job_type(**kwargs)
 
-    def __getitem__(self, session_or_job: SessionArgs | Job) -> Job:
+    def __getitem__(self, session_or_job: SessionArgs | Job) -> JobT:
         """Get a job from the queue, matching on session."""
         session = get_session(session_or_job)
         with self.cursor() as c:
@@ -224,7 +225,7 @@ class SqliteJobQueue(collections.abc.MutableMapping):
                 (),
             ).fetchall()[0][0]
     
-    def __iter__(self) -> Iterator[Job]:
+    def __iter__(self) -> Iterator[JobT]:
         """Iterate over the jobs in the queue.   
         Sorted by priority (desc), then date added (asc).
         """
@@ -237,21 +238,23 @@ class SqliteJobQueue(collections.abc.MutableMapping):
     
     def add_or_update(self, session_or_job: SessionArgs | Job, **kwargs: JobArgs) -> None:
         """Add an entry to the queue or update the existing entry.
-        Any kwargs provided will be updated on the job.
+        - any kwargs provided will be updated on the job
+        - job will be re-queued
         """
         self.update(session_or_job, **kwargs)
+        self.set_queued(session_or_job)
         
     def update(self, session_or_job: SessionArgs | Job, **kwargs: JobArgs) -> None:
         """Update an existing entry in the queue.
         Any kwargs provided will be updated on the job.
         """
-        job = self.setdefault(session_or_job, get_job(session_or_job)) 
+        job = self.setdefault(session_or_job, get_job(session_or_job, self.job_type)) 
         for key, value in kwargs.items():
             setattr(job, key, value)
         super().update({session_or_job: job})
     
         
-    def next(self) -> Job | None:
+    def next(self) -> JobT | None:
         """
         Get the next job to process.
         Sorted by priority (desc), then date added (asc).
@@ -259,7 +262,7 @@ class SqliteJobQueue(collections.abc.MutableMapping):
         for job in self:
             if not self.is_started(job):
                 return job
-            
+    
     def set_finished(self, session_or_job: SessionArgs | Job) -> None:
         """Mark a job as finished. May be irreversible, so be sure."""
         self.update(session_or_job, finished=1)
@@ -270,11 +273,19 @@ class SqliteJobQueue(collections.abc.MutableMapping):
         
     def set_queued(self, session_or_job: SessionArgs | Job) -> None:
         """Mark a job as requiring processing, undoing `set_started`."""
-        self.update(session_or_job, started=None, hostname=None, finished=None)
+        self.update(session_or_job, started=None, hostname=None, finished=None, errored=None)
+    
+    def set_errored(self, session_or_job: SessionArgs | Job, error: str | Exception) -> None:
+        self.update(session_or_job, error=str(error))
     
     def is_started(self, session_or_job: SessionArgs | Job) -> bool:
         """Whether the job has started processing, but not yet finished."""
-        return bool(self[session_or_job].started)
+        return (
+            self[session_or_job].started
+            and not self[session_or_job].finished
+            and not self[session_or_job].error
+        )
+
 
 
 if __name__ == '__main__':
