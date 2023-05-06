@@ -31,6 +31,8 @@ For a job stored in sqlite, these would correspond to column-name:value pairs.
 """
 JobT = TypeVar('JobT', bound='Job')
 """TypeVar with upper-bound `Job`."""
+JobQueueT = TypeVar('JobQueueT', bound='JobQueue')
+"""TypeVar with upper-bound `JobQueue`."""
 
 
 @typing.runtime_checkable
