@@ -8,6 +8,7 @@ Base class for sqlite job queues.
 >>> q['123456789_366122_20230422'] = get_job('123456789_366122_20230422')
 >>> assert q.next().session == np_session.Session('123456789_366122_20230422')
 >>> q.add_or_update('123456789_366122_20230422', priority=99)
+>>> import datetime; assert datetime.datetime.fromtimestamp(q['123456789_366122_20230422'].added)
 >>> q.update('123456789_366122_20230422', finished=0)
 >>> assert q['123456789_366122_20230422'].priority == 99
 >>> q.set_started('123456789_366122_20230422')
@@ -35,7 +36,7 @@ import np_session
 from np_queuey.types import Job, SessionArgs, JobArgs
 from np_queuey.utils import get_job, get_session, JobDataclass
 
-DEFAULT_DB_PATH = '//allen/programs/mindscope/workgroups/dynamicrouting/ben/huey/shared.db'
+DEFAULT_DB_PATH = '//allen/programs/mindscope/workgroups/dynamicrouting/ben/np_queuey/.shared.db'
 
 JOB_ARGS_TO_SQL_DEFINITIONS: dict[str, str] = {
     'session': 'TEXT PRIMARY KEY NOT NULL',
