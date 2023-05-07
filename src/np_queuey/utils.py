@@ -101,6 +101,7 @@ def update_status(queue: JobQueueT, job: JobT) -> Generator[Any, None, None]:
             return
         else: # KeyboardInterrupt, SystemExit etc:
             queue.set_queued(job)
+            logger.debug('Interrupted: job re-queued: %s %s', queue, job.session)
             raise
     else:
         queue.set_finished(job)
