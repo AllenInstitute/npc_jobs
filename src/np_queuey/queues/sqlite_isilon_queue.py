@@ -260,7 +260,11 @@ class SqliteJobQueue(collections.abc.MutableMapping):
         Sorted by priority (desc), then date added (asc).
         """
         for job in self:
-            if not self.is_started(job):
+            if (
+                not self.is_started(job) 
+                and not job.finished
+                and not (job.error and job.hostname == np_config.HOSTNAME)
+            ):
                 return job
     
     def set_finished(self, session_or_job: SessionArgs | Job) -> None:
@@ -280,10 +284,11 @@ class SqliteJobQueue(collections.abc.MutableMapping):
     
     def is_started(self, session_or_job: SessionArgs | Job) -> bool:
         """Whether the job has started processing, but not yet finished."""
+        job = self[session_or_job]
         return (
-            self[session_or_job].started
-            and not self[session_or_job].finished
-            and not self[session_or_job].error
+            job.started
+            and not job.finished
+            and not job.error
         )
 
 
