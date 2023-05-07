@@ -3,7 +3,9 @@ Base class for sqlite job queues.
 
 - file must be accessible on //allen (has implications for sqlite, e.g.
   incompat with 'wal' mode)
-  
+
+>>> with SqliteJobQueue(table_name='test').cursor() as c:
+...   _ = c.execute('DROP TABLE IF EXISTS test')
 >>> q = SqliteJobQueue(table_name='test')
 >>> q['123456789_366122_20230422'] = get_job('123456789_366122_20230422')
 >>> assert q.next().session == np_session.Session('123456789_366122_20230422')
