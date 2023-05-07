@@ -251,7 +251,7 @@ class SqliteJobQueue(collections.abc.MutableMapping):
         job = self.setdefault(session_or_job, get_job(session_or_job, self.job_type)) 
         for key, value in kwargs.items():
             setattr(job, key, value)
-        super().update({session_or_job: job})
+        super().update({job.session: job})
     
         
     def next(self) -> JobT | None:
