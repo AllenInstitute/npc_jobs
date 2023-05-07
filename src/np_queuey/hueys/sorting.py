@@ -94,8 +94,7 @@ def remove_raw_data_on_acq_drives(session_or_job: SortingJob | SessionArgs) -> N
             shutil.rmtree(path, ignore_errors=True)
 
 def add_job_to_pipeline_qc_queue(session_or_job: Job | SessionArgs) -> None:
-    job = get_job(session_or_job, SortingJob)
-    PipelineQCQueue().add_or_update(job)
+    PipelineQCQueue().add_or_update(session_or_job)
 
 def main() -> NoReturn:
     """Run synchronous task loop."""
