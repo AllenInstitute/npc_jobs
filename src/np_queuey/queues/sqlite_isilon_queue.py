@@ -82,7 +82,7 @@ class SqliteJobQueue(collections.abc.MutableMapping):
     """Job class to use for the queue - see `np_queuey.types.Job` protocol for required attributes"""
     
     def __init__(
-        self, 
+        self,
         **kwargs,
         ) -> None:
         """
@@ -233,7 +233,7 @@ class SqliteJobQueue(collections.abc.MutableMapping):
         """
         with self.cursor() as c:
             hits = c.execute(
-                f'SELECT * FROM {self.table_name} ORDER BY priority DESC, added ASC',
+                f'SELECT * FROM {self.table_name} ORDER BY error ASC NULLS FIRST, priority DESC, added ASC',
                 (),
             ).fetchall()
         return iter(self.to_job(*hit) for hit in hits)
