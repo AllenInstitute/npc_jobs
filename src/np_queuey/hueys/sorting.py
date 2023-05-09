@@ -12,9 +12,10 @@ from typing import Generator, NoReturn
 import huey as _huey
 import np_logging
 import np_session
+import np_tools
 from typing_extensions import Literal
 
-from np_queuey.utils import get_job, update_status
+from np_queuey.utils import get_job, get_session, update_status
 from np_queuey.queues.pipeline_sorting_queue import (
     PipelineSortingQueue, SortingJob
 )
@@ -78,18 +79,25 @@ def move_sorted_folders_to_npexp(session_or_job: SortingJob | SessionArgs) -> No
     """
     job = get_job(session_or_job, SortingJob)
     for probe_folder in probe_folders(job):
-        logger.info('Moving D:/%s to npexp', probe_folder)
+        src = pathlib.Path(f'D:/{probe_folder}')
+        dest = np_session.Session(job.session).npexp_path / probe_folder
+        logger.info(f'Moving {src} to {dest}')
         subprocess.run([
-            'robocopy', f'D:/{probe_folder}', 
-             str(np_session.Session(job.session).npexp_path / probe_folder), 
+            'robocopy', f'{src}', f'{dest}',
              '/MOVE', '/E', '/COPYALL', '/R:0', '/W:0', '/MT:32'
              ], check=False) # return code from robocopy doesn't signal failure      
-        
-
+        if src.exists():
+            np_tools.move(src, dest, ignore_errors=True)
+            
 def remove_raw_data_on_acq_drives(session_or_job: SortingJob | SessionArgs) -> None:
-    job = get_job(session_or_job, SortingJob)
+    session = get_session(session_or_job)
     for drive in ('A:', 'B:'):
-        for path in pathlib.Path(drive).glob(f'{job.session}*'):
+        for path in pathlib.Path(drive).glob(f'{session}*'):
+            npexp_path = session.npexp_path / path.name
+            lims_path = session.lims_path / path.name if hasattr(session, 'lims_path') else None
+            if not npexp_path.exists() and (lims_path is None or not lims_path.exists()):
+                logger.info('Copying %r to npexp', path)
+                np_tools.copy(path, npexp_path)
             logger.info('Removing %r', path)
             shutil.rmtree(path, ignore_errors=True)
 
