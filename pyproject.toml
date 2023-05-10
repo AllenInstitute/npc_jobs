@@ -1,6 +1,6 @@
 [project]
 name = "np_jobs"
-version = "0.0.1"
+version = "0.0.2"
 description = "Interfaces for job queues used to coordinate distributed tasks for Mindscope Neuropixels workflows."
 authors = [
     {name = "Ben Hardcastle", email = "ben.hardcastle@alleninstitute.org"},
