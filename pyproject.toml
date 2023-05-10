@@ -1,17 +1,15 @@
 [project]
-name = "np_queuey"
-version = "0.2.7"
-description = "Tools for submitting and processing jobs through a message queue for Mindscope Neuropixels workflows."
+name = "np_jobs"
+version = "0.0.1"
+description = "Interfaces for job queues used to coordinate distributed tasks for Mindscope Neuropixels workflows."
 authors = [
     {name = "Ben Hardcastle", email = "ben.hardcastle@alleninstitute.org"},
 ]
 dependencies = [
-    "huey>=2.4.5",
     "np-config>=0.4.17",
     "np-logging>=0.5.1",
     "np-tools>=0.1.8",
     "np-session>=0.5.1",
-    "typing-extensions>=4.5.0",
 ]
 requires-python = ">=3.8"
 readme = "README.md"
@@ -28,14 +26,11 @@ classifiers = [
 ]
 
 [project.scripts]
-run_small_jobs = "np_queuey.jobs.run_small_jobs:main"
-# run_sorting = "np_queuey.jobs.run_sorting:main"
-run_sorting = "np_queuey.hueys.sorting:main"
-run_qc = "np_queuey.hueys.qc:main"
+
 
 [project.urls]
-Repository = "https://github.com/AllenInstitute/np_queuey"
-"Bug Tracker" = "https://github.com/AllenInstitute/np_queuey/issues"
+Repository = "https://github.com/AllenInstitute/np_jobs"
+Issues = "https://github.com/AllenInstitute/np_jobs/issues"
 
 [build-system]
 requires = ["pdm-backend"]
@@ -91,7 +86,7 @@ source = ["src"]
 
 [tool.coverage.run]
 branch = true
-source = ["np_queuey"]
+source = ["np_jobs"]
 
 [tool.coverage.report]
 show_missing = true

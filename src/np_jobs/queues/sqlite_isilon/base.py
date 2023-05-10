@@ -4,9 +4,9 @@ Base class for sqlite job queues.
 - file must be accessible on //allen (has implications for sqlite, e.g.
   incompat with 'wal' mode)
 
->>> with SqliteJobQueue(table_name='test').cursor() as c:
+>>> with SqliteIsilonJobQueue(table_name='test').cursor() as c:
 ...   _ = c.execute('DROP TABLE IF EXISTS test')
->>> q = SqliteJobQueue(table_name='test')
+>>> q = SqliteIsilonJobQueue(table_name='test')
 >>> q['123456789_366122_20230422'] = get_job('123456789_366122_20230422')
 >>> assert q.next().session == np_session.Session('123456789_366122_20230422')
 >>> q.add_or_update('123456789_366122_20230422', priority=99)
@@ -35,10 +35,10 @@ from typing import Any, Generator, Iterator, Optional, Type
 import np_config
 import np_session
 
-from np_queuey.types import Job, JobArgs, JobT, SessionArgs
-from np_queuey.utils import JobDataclass, get_job, get_session
+from np_jobs.types import Job, JobArgs, JobT, SessionArgs
+from np_jobs.utils import JobDataclass, get_job, get_session, CONFIG
 
-DEFAULT_DB_PATH = '//allen/programs/mindscope/workgroups/dynamicrouting/ben/np_queuey/.shared.db'
+DEFAULT_DB_PATH = CONFIG['shared_sqlite_isilon_path']
 
 JOB_ARGS_TO_SQL_DEFINITIONS: dict[str, str] = {
     'session': 'TEXT PRIMARY KEY NOT NULL',
@@ -69,7 +69,7 @@ def sql_table(column_name_to_definition_mapping: dict[str, str]) -> str:
         + ')'
     )
 
-class SqliteJobQueue(collections.abc.MutableMapping):
+class SqliteIsilonJobQueue(collections.abc.MutableMapping):
     
     db: sqlite3.Connection
     """sqlite3 db connection to shared file on Isilon"""
@@ -79,7 +79,7 @@ class SqliteJobQueue(collections.abc.MutableMapping):
     
     column_definitions: dict[str, str] = JOB_ARGS_TO_SQL_DEFINITIONS
     job_type: Type[Job] = JobDataclass
-    """Job class to use for the queue - see `np_queuey.types.Job` protocol for required attributes"""
+    """Job class to use for the queue - see `np_jobs.types.Job` protocol for required attributes"""
     
     def __init__(
         self,
@@ -115,7 +115,7 @@ class SqliteJobQueue(collections.abc.MutableMapping):
         """
         Create table with `self.table_name` if it doesn't exist.    
         
-        >>> s = SqliteJobQueue(table_name='test')
+        >>> s = SqliteIsilonJobQueue(table_name='test')
         >>> s.setup_job_table()
         >>> with s.cursor() as c:
         ...   result = c.execute('SELECT count(*) FROM sqlite_schema WHERE type="table" AND name="test"').fetchall()[0][0]
@@ -130,7 +130,7 @@ class SqliteJobQueue(collections.abc.MutableMapping):
     @contextlib.contextmanager
     def cursor(self) -> Generator[sqlite3.Cursor, None, None]:
         """
-        >>> with SqliteJobQueue(table_name='test').cursor() as c:
+        >>> with SqliteIsilonJobQueue(table_name='test').cursor() as c:
         ...    assert isinstance(c, sqlite3.Cursor)
         ...    _ = c.execute('SELECT 1').fetchall()
         """

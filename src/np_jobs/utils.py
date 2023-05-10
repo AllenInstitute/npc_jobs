@@ -1,4 +1,4 @@
-"""Utilities for np_queuey, should be importable from anywhere in the project
+"""Utilities for np_jobs, should be importable from anywhere in the project
 (except `types` module)."""
 from __future__ import annotations
 import contextlib
@@ -13,48 +13,12 @@ import np_config
 import np_logging
 import np_session
 
-from np_queuey.types import Job, SessionArgs, JobQueue, JobT, JobQueueT
+from np_jobs.types import Job, SessionArgs, JobQueue, JobT, JobQueueT
+from np_jobs.jobs.base import JobDataclass, JobTuple
 
 logger = np_logging.getLogger(__name__)
 
-CONFIG: dict[str, Any] = np_config.fetch('/projects/np_queuey/config')
-
-DEFAULT_HUEY_SQLITE_DB_PATH: str = CONFIG['shared_huey_sqlite_db_path']
-
-DEFAULT_HUEY_DIR: pathlib.Path = pathlib.Path(
-    DEFAULT_HUEY_SQLITE_DB_PATH
-).parent
-"""Directory for shared resources (tasks, sqlite dbs, huey instances...)"""
-
-
-class JobTuple(NamedTuple):
-    """Tuple with session and added required inputs.
-    
-    >>> job = JobTuple('123456789_366122_20230422', datetime.datetime.now())
-    >>> assert isinstance(job, Job)
-    """
-    session: str
-    added: float
-    priority = 0
-    started: Optional[int | float] = None
-    hostname: Optional[str] = None
-    finished: Optional[int] = None
-    error: Optional[str] = None
-
-@dataclasses.dataclass
-class JobDataclass:
-    """Dataclass with only session required.
-    
-    >>> job = JobDataclass('123456789_366122_20230422')
-    >>> assert isinstance(job, Job)
-    """
-    session: str
-    added: float = dataclasses.field(default_factory=time.time)
-    priority: int = 0
-    started: Optional[int | float] = None
-    hostname: Optional[str] = None
-    finished: Optional[int] = None
-    error: Optional[str] = None
+CONFIG: dict[str, Any] = np_config.fetch('/projects/np_jobs/config')
 
 def get_session(session_or_job: SessionArgs | Job) -> np_session.Session:
     """Parse a session argument into a Neuropixels Session.

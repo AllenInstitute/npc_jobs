@@ -17,7 +17,6 @@ from typing import (Any, Mapping, NamedTuple, Optional, Protocol, Type,
 
 import np_config
 import np_session
-import peewee
 from typing_extensions import Self, TypeAlias
 
 
