@@ -26,11 +26,15 @@ def get_session(session_or_job: SessionArgs | Job) -> np_session.Session:
     >>> get_session('123456789_366122_20230422')
     PipelineSession('123456789_366122_20230422')
     >>> assert _ == get_session(np_session.Session('123456789_366122_20230422'))
+    >>> get_session('DRpilot_644866_20230207')
+    DRPilotSession('DRpilot_644866_20230207')
     """
     if isinstance(session_or_job, np_session.Session):
         return session_or_job
+    if isinstance(session_or_job, Job):
+        return get_session(session_or_job.session)
     try:
-        return np_session.Session(session_or_job)
+        return np_session.Session(str(session_or_job))
     except np_session.SessionError as exc:
         raise TypeError(
             f'Unknown type for session_or_job: {session_or_job!r}'
